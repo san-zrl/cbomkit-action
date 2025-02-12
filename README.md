@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Create CBOM
-        uses: PQCA/CBOMkit-action@v1.0.0
+        uses: PQCA/cbomkit-action@v1.0.0
         id: cbom
       # Allow you to persist CBOM after a job has completed, and share 
       # that CBOM with another job in the same workflow.
