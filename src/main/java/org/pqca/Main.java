@@ -25,9 +25,11 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.cyclonedx.Version;
 import org.cyclonedx.exception.GeneratorException;
@@ -45,6 +47,8 @@ import org.pqca.errors.CouldNotLoadJavaJars;
 import org.pqca.errors.CouldNotWriteCBOMToOutput;
 import org.pqca.indexing.JavaIndexService;
 import org.pqca.indexing.ProjectModule;
+import org.pqca.packages.MavenPackageFinderService;
+import org.pqca.packages.PackageMetadata;
 import org.pqca.scanning.java.JavaScannerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,48 +60,68 @@ public class Main {
     private static final String ACTION_ORG = "PQCA";
 
     public static void main(@Nonnull String[] args) {
+        final String workspace = System.getenv("GITHUB_WORKSPACE");
+        final File projectDirectory = new File(workspace);
+
         try {
-            final String workspace = System.getenv("GITHUB_WORKSPACE");
-            final File projectDirectory = new File(workspace);
-
-            // TODO: identify packages here
-
-            // java
             final List<File> javaJars = getJavaJars();
             final JavaIndexService javaIndexService = new JavaIndexService(projectDirectory);
-            final List<ProjectModule> javaProjectModules =
-                    javaIndexService.index(projectDirectory.toPath());
 
-            final JavaScannerService javaScannerService =
-                    new JavaScannerService(javaJars, projectDirectory);
-            final Bom javaBom = javaScannerService.scan(null, javaProjectModules);
+            // identify packages
+            MavenPackageFinderService packageFinder =
+                    new MavenPackageFinderService(projectDirectory);
+            for (Path p : packageFinder.findPackages()) {
+                try {
+                    Path packagePath = p.equals(projectDirectory.toPath()) ? p : p.getParent();
+                    LOG.info("Package path is: {}", packagePath.toString());
 
-            // TODO: python
+                    // java
+                    final List<ProjectModule> javaProjectModules =
+                            javaIndexService.index(packagePath);
+                    final JavaScannerService javaScannerService =
+                            new JavaScannerService(javaJars, packagePath.toFile());
+                    final Bom javaBom = javaScannerService.scan(null, javaProjectModules);
 
-            final Bom bom = createCombinedBom(List.of(javaBom));
-            final BomJsonGenerator bomGenerator =
-                    BomGeneratorFactory.createJson(Version.VERSION_16, bom);
-            @Nullable String bomString = bomGenerator.toJsonString();
-            LOG.info(bomString);
+                    // TODO: python
 
-            writeBom(bomString);
-        } catch (CouldNotLoadJavaJars
-                | GeneratorException
-                | CBOMWasEmpty
-                | CouldNotWriteCBOMToOutput e) {
+                    final Bom bom = createCombinedBom(List.of(javaBom));
+
+                    writeBom(packageFinder.getMetadata(p), bom);
+                } catch (GeneratorException | CBOMWasEmpty | CouldNotWriteCBOMToOutput e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        } catch (CouldNotLoadJavaJars e) {
             LOG.error(e.getMessage(), e);
         }
     }
 
-    private static void writeBom(@Nullable String bomString)
-            throws CouldNotWriteCBOMToOutput, CBOMWasEmpty {
-        final String fileName = "cbom.json";
+    private static void writeBom(Optional<PackageMetadata> packageMetadata, Bom bom)
+            throws GeneratorException, CouldNotWriteCBOMToOutput, CBOMWasEmpty {
+        final String fileName =
+                packageMetadata
+                        .map(
+                                pm ->
+                                        String.format(
+                                                "cbom_{}_{}_{}.json",
+                                                pm.namespace(),
+                                                pm.name(),
+                                                pm.version()))
+                        .orElse("cbom.json");
         final String githubOutput = System.getenv("GITHUB_OUTPUT");
 
+        final BomJsonGenerator bomGenerator =
+                BomGeneratorFactory.createJson(Version.VERSION_16, bom);
+        @Nullable String bomString = bomGenerator.toJsonString();
+        // LOG.info(bomString);
         if (bomString == null) {
             throw new CBOMWasEmpty();
         }
 
+        LOG.info(
+                "Writing cbom {} with {} components",
+                fileName,
+                bom.getComponents() == null ? 0 : bom.getComponents().size());
         try (FileWriter writer = new FileWriter(fileName)) {
             writer.write(bomString);
             // set output var
