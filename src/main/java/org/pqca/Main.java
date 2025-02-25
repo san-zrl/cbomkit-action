@@ -108,7 +108,6 @@ public class Main {
                                                 pm.name(),
                                                 pm.version()))
                         .orElse("cbom.json");
-        final String githubOutput = System.getenv("GITHUB_OUTPUT");
 
         final BomJsonGenerator bomGenerator =
                 BomGeneratorFactory.createJson(Version.VERSION_16, bom);
@@ -124,10 +123,6 @@ public class Main {
                 bom.getComponents() == null ? 0 : bom.getComponents().size());
         try (FileWriter writer = new FileWriter(fileName)) {
             writer.write(bomString);
-            // set output var
-            final FileWriter outPutVarFileWriter = new FileWriter(githubOutput, true);
-            outPutVarFileWriter.write("filename=" + fileName + "\n");
-            outPutVarFileWriter.close();
         } catch (IOException e) {
             throw new CouldNotWriteCBOMToOutput(e);
         }
