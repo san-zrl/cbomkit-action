@@ -71,6 +71,11 @@ public class Main {
             MavenPackageFinderService packageFinder =
                     new MavenPackageFinderService(projectDirectory);
             for (Path p : packageFinder.findPackages()) {
+                Optional<PackageMetadata> metadata = packageFinder.getMetadata(p);
+                if (!metadata.isPresent()) {
+                    continue;
+                }
+
                 try {
                     Path packagePath = p.equals(projectDirectory.toPath()) ? p : p.getParent();
                     LOG.info("Package path is: {}", packagePath.toString());
@@ -90,7 +95,7 @@ public class Main {
 
                     final Bom bom = createCombinedBom(List.of(javaBom));
 
-                    writeBom(packageFinder.getMetadata(p), bom);
+                    writeBom(metadata, bom);
                 } catch (GeneratorException | CBOMWasEmpty | CouldNotWriteCBOMToOutput e) {
                     LOG.error(e.getMessage(), e);
                 }
