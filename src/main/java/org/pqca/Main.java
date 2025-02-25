@@ -78,6 +78,10 @@ public class Main {
                     // java
                     final List<ProjectModule> javaProjectModules =
                             javaIndexService.index(packagePath);
+                    if (javaProjectModules.isEmpty()) {
+                        LOG.info("Skipping - no projects found");
+                        continue;
+                    }
                     final JavaScannerService javaScannerService =
                             new JavaScannerService(javaJars, packagePath.toFile());
                     final Bom javaBom = javaScannerService.scan(null, javaProjectModules);
@@ -112,7 +116,7 @@ public class Main {
                         .map(
                                 pm ->
                                         String.format(
-                                                "cbom_{}_{}_{}.json",
+                                                "cbom_%s_%s_%s.json",
                                                 pm.namespace(),
                                                 pm.name(),
                                                 pm.version()))
