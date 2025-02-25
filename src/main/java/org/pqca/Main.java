@@ -117,9 +117,7 @@ public class Main {
                                 pm ->
                                         String.format(
                                                 "cbom_%s_%s_%s.json",
-                                                pm.namespace(),
-                                                pm.name(),
-                                                pm.version()))
+                                                pm.namespace(), pm.name(), pm.version()))
                         .orElse("cbom.json");
 
         final BomJsonGenerator bomGenerator =
