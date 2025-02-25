@@ -93,6 +93,15 @@ public class Main {
             }
         } catch (CouldNotLoadJavaJars e) {
             LOG.error(e.getMessage(), e);
+            return;
+        }
+
+        // set output var
+        final String githubOutput = System.getenv("GITHUB_OUTPUT");
+        try (final FileWriter outPutVarFileWriter = new FileWriter(githubOutput, true)) {
+            outPutVarFileWriter.write("pattern=cbom*.json\n");
+        } catch (IOException e) {
+            LOG.error(e.getMessage(), e);
         }
     }
 
