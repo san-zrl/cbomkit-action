@@ -79,7 +79,7 @@ public class BomGenerator {
         }
 
         // final JavaScannerService javaScannerService =
-        //         new JavaScannerService(javaJars, projectDirectory);
+        // new JavaScannerService(javaJars, projectDirectory);
         // return javaScannerService.scan(javaProjectModules);
         return null;
     }
@@ -103,7 +103,7 @@ public class BomGenerator {
         }
 
         // final PythonScannerService pythonScannerService =
-        //         new PythonScannerService(projectDirectory);
+        // new PythonScannerService(projectDirectory);
         // return pythonScannerService.scan(pythonProjectModules);
         return null;
     }
@@ -115,10 +115,10 @@ public class BomGenerator {
         return allModules.stream()
                 .filter(
                         pm ->
-                                packageDir
+                                projectDirectory
                                         .toPath()
-                                        .startsWith(
-                                                projectDirectory.toPath().resolve(pm.identifier())))
+                                        .resolve(pm.identifier())
+                                        .startsWith(packageDir.toPath()))
                 .toList();
     }
 
