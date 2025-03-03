@@ -43,11 +43,11 @@ public class Main {
         final BomGenerator bomGenerator = new BomGenerator(projectDirectory);
 
         try {
-            /*Bom javaBom = */ bomGenerator.generateJavaBoms();
-            /*Bom pythonBom = */ bomGenerator.generatePythonBoms();
+            Bom javaBom = bomGenerator.generateJavaBoms();
+            Bom pythonBom = bomGenerator.generatePythonBoms();
 
-            // Bom consolidatedBom = createCombinedBom(List.of(javaBom, pythonBom));
-            // bomGenerator.writeBom(consolidatedBom);
+            Bom consolidatedBom = createCombinedBom(List.of(javaBom, pythonBom));
+            bomGenerator.writeBom(consolidatedBom);
         } catch (CouldNotLoadJavaJars e) {
             LOG.error(e.getMessage(), e);
         }

@@ -20,7 +20,6 @@
 package org.pqca;
 
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileWriter;
@@ -59,7 +58,8 @@ public class BomGenerator {
         this.projectDirectory = projectDirectory;
     }
 
-    @Nullable public Bom generateJavaBoms() throws CouldNotLoadJavaJars {
+    @Nonnull
+    public Bom generateJavaBoms() throws CouldNotLoadJavaJars {
         final JavaIndexService javaIndexService = new JavaIndexService(projectDirectory);
         final List<ProjectModule> javaProjectModules = javaIndexService.index();
 
@@ -67,7 +67,7 @@ public class BomGenerator {
         final MavenPackageFinderService packageFinder =
                 new MavenPackageFinderService(projectDirectory);
         for (PackageMetadata pm : packageFinder.findPackages()) {
-            LOG.info("Java package is: {}", pm.packageDir());
+            LOG.info("Scanning maven package {}", pm.packageDir());
             final List<ProjectModule> packageModules =
                     getPackageModules(javaProjectModules, pm.packageDir());
             if (!packageModules.isEmpty()) {
@@ -75,23 +75,25 @@ public class BomGenerator {
                         new JavaScannerService(javaJars, pm.packageDir());
                 final Bom javaBom = javaScannerService.scan(packageModules);
                 writeBom(pm, javaBom);
+            } else {
+                LOG.info("No java source code to scan.");
             }
         }
 
-        // final JavaScannerService javaScannerService =
-        // new JavaScannerService(javaJars, projectDirectory);
-        // return javaScannerService.scan(javaProjectModules);
-        return null;
+        final JavaScannerService javaScannerService =
+                new JavaScannerService(javaJars, projectDirectory);
+        return javaScannerService.scan(javaProjectModules);
     }
 
-    @Nullable public Bom generatePythonBoms() {
+    @Nonnull
+    public Bom generatePythonBoms() {
         final PythonIndexService pythonIndexService = new PythonIndexService(projectDirectory);
         final List<ProjectModule> pythonProjectModules = pythonIndexService.index();
 
         final PythonPackageFinderService packageFinder =
                 new PythonPackageFinderService(projectDirectory);
         for (PackageMetadata pm : packageFinder.findPackages()) {
-            LOG.info("Python package is: {}", pm.packageDir());
+            LOG.info("Scanning python package {}", pm.packageDir());
             final List<ProjectModule> packageModules =
                     getPackageModules(pythonProjectModules, pm.packageDir());
             if (!packageModules.isEmpty()) {
@@ -99,19 +101,17 @@ public class BomGenerator {
                         new PythonScannerService(pm.packageDir());
                 final Bom pythonBom = pythonScannerService.scan(packageModules);
                 writeBom(pm, pythonBom);
+            } else {
+                LOG.info("No python source code to scan.");
             }
         }
 
-        // final PythonScannerService pythonScannerService =
-        // new PythonScannerService(projectDirectory);
-        // return pythonScannerService.scan(pythonProjectModules);
-        return null;
+        final PythonScannerService pythonScannerService =
+                new PythonScannerService(projectDirectory);
+        return pythonScannerService.scan(pythonProjectModules);
     }
 
     private List<ProjectModule> getPackageModules(List<ProjectModule> allModules, File packageDir) {
-        LOG.info("Searching for " + packageDir.toString());
-        allModules.forEach(
-                pm -> LOG.info(projectDirectory.toPath().resolve(pm.identifier()).toString()));
         return allModules.stream()
                 .filter(
                         pm ->
