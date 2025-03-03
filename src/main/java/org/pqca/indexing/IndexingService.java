@@ -23,16 +23,13 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.InputFile;
@@ -55,9 +52,7 @@ public abstract class IndexingService {
     }
 
     @Nonnull
-    public List<ProjectModule> index(@Nullable Path packageFolder) {
-        Optional.ofNullable(packageFolder)
-                .ifPresent(path -> baseDirectory = baseDirectory.toPath().resolve(path).toFile());
+    public List<ProjectModule> index() {
         return detectModules(baseDirectory, new ArrayList<>());
     }
 
@@ -69,7 +64,7 @@ public abstract class IndexingService {
         }
 
         if (isModule(filesInDir)) {
-            LOGGER.debug("Extracting projects from module: {}", projectDirectory.getPath());
+            LOGGER.debug("Extracting projects from module: {}", projectDirectory);
             for (File file : filesInDir) {
                 if (file.isDirectory()
                         && !".git".equals(file.getName())
@@ -97,7 +92,7 @@ public abstract class IndexingService {
         if (filesInDir == null) {
             return Collections.emptyList();
         }
-        LOGGER.debug("Extracting files from directory: {}", directory.getPath());
+        LOGGER.debug("Extracting files from directory: {}", directory);
 
         for (File file : filesInDir) {
             if (excludeFromIndexing(file)) {
@@ -106,7 +101,7 @@ public abstract class IndexingService {
             if (file.isDirectory() && !".git".equals(file.getName())) {
                 getFiles(new File(directory + File.separator + file.getName()), inputFiles);
             } else if (file.isFile() && file.getName().endsWith(this.languageFileExtension)) {
-                LOGGER.debug("Found file: {}", file.getPath());
+                LOGGER.debug("Found file: {}", file);
                 try {
                     TestInputFileBuilder builder = createTestFileBuilder(directory, file);
                     builder.setLanguage(this.languageIdentifier);
@@ -134,7 +129,7 @@ public abstract class IndexingService {
             }
         }
         if (contents == null || encoding == null) {
-            throw new IOException(String.format("Invalid encoding of file {}", file.getPath()));
+            throw new IOException(String.format("Invalid encoding of file {}", file));
         }
 
         return new TestInputFileBuilder("", file.getPath())

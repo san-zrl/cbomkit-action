@@ -21,8 +21,6 @@ package org.pqca.scanning;
 
 import com.ibm.mapper.model.INode;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import org.cyclonedx.model.Bom;
@@ -31,5 +29,5 @@ import org.pqca.indexing.ProjectModule;
 public interface IScannerService extends Consumer<List<INode>> {
 
     @Nonnull
-    Bom scan(@Nullable Path packageFolder, @Nonnull List<ProjectModule> index) throws Exception;
+    Bom scan(@Nonnull List<ProjectModule> index) throws Exception;
 }

@@ -20,9 +20,7 @@
 package org.pqca.scanning.java;
 
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
 import org.cyclonedx.model.Bom;
 import org.pqca.indexing.ProjectModule;
@@ -52,7 +50,7 @@ public final class JavaScannerService extends ScannerService {
 
     @Override
     @Nonnull
-    public synchronized Bom scan(@Nullable Path packageFolder, @Nonnull List<ProjectModule> index) {
+    public synchronized Bom scan(@Nonnull List<ProjectModule> index) {
         final List<JavaCheck> visitors = List.of(new JavaDetectionCollectionRule(this));
         final SensorContextTester sensorContext = SensorContextTester.create(projectDirectory);
         sensorContext.setSettings(
