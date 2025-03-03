@@ -20,6 +20,7 @@
 package org.pqca;
 
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileWriter;
@@ -58,8 +59,7 @@ public class BomGenerator {
         this.projectDirectory = projectDirectory;
     }
 
-    @Nonnull
-    public Bom generateJavaBoms() throws CouldNotLoadJavaJars {
+    @Nullable public Bom generateJavaBoms() throws CouldNotLoadJavaJars {
         final JavaIndexService javaIndexService = new JavaIndexService(projectDirectory);
         final List<ProjectModule> javaProjectModules = javaIndexService.index();
 
@@ -78,13 +78,13 @@ public class BomGenerator {
             }
         }
 
-        final JavaScannerService javaScannerService =
-                new JavaScannerService(javaJars, projectDirectory);
-        return javaScannerService.scan(javaProjectModules);
+        // final JavaScannerService javaScannerService =
+        //         new JavaScannerService(javaJars, projectDirectory);
+        // return javaScannerService.scan(javaProjectModules);
+        return null;
     }
 
-    @Nonnull
-    public Bom generatePythonBoms() {
+    @Nullable public Bom generatePythonBoms() {
         final PythonIndexService pythonIndexService = new PythonIndexService(projectDirectory);
         final List<ProjectModule> pythonProjectModules = pythonIndexService.index();
 
@@ -102,12 +102,16 @@ public class BomGenerator {
             }
         }
 
-        final PythonScannerService pythonScannerService =
-                new PythonScannerService(projectDirectory);
-        return pythonScannerService.scan(pythonProjectModules);
+        // final PythonScannerService pythonScannerService =
+        //         new PythonScannerService(projectDirectory);
+        // return pythonScannerService.scan(pythonProjectModules);
+        return null;
     }
 
     private List<ProjectModule> getPackageModules(List<ProjectModule> allModules, File packageDir) {
+        LOG.info("Searching for " + packageDir.toString());
+        allModules.forEach(
+                pm -> LOG.info(projectDirectory.toPath().resolve(pm.identifier()).toString()));
         return allModules.stream()
                 .filter(
                         pm ->

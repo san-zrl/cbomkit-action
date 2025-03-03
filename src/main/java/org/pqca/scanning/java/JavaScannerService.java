@@ -68,6 +68,7 @@ public final class JavaScannerService extends ScannerService {
         sonarComponents.setSensorContext(sensorContext);
 
         LOGGER.info("Start scanning {} java projects", index.size());
+        index.forEach(pm -> LOGGER.info("  " + pm.identifier()));
 
         for (ProjectModule project : index) {
             final JavaAstScannerExtension jscanner = new JavaAstScannerExtension(sonarComponents);
