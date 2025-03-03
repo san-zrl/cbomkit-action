@@ -34,7 +34,9 @@ public record PackageMetadata(
         if (namespace != null) {
             sb.append("_" + namespace);
         }
-        sb.append("_" + name);
+        if (name != null) {
+            sb.append("_" + name);
+        }
         if (version != null) {
             sb.append("_" + version);
         }
