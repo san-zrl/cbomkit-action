@@ -199,10 +199,10 @@ public class BomGenerator {
         if (!packageMetadata.packageDir().equals(projectDirectory)) {
             final Path relPackageDir =
                     projectDirectory.toPath().relativize(packageMetadata.packageDir().toPath());
-            final Property packageFolderProperty = new Property();
-            packageFolderProperty.setName("packageFolder");
-            packageFolderProperty.setValue(relPackageDir.toString());
-            metadata.addProperty(packageFolderProperty);
+            final Property subFolderProperty = new Property();
+            subFolderProperty.setName("subfolder");
+            subFolderProperty.setValue(relPackageDir.toString());
+            metadata.addProperty(subFolderProperty);
         }
 
         return metadata;
