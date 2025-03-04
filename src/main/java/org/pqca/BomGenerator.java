@@ -171,11 +171,12 @@ public class BomGenerator {
         scannerInfo.setServices(List.of(scannerService));
         metadata.setToolChoice(scannerInfo);
 
+        final String gitServer = System.getenv("GITHUB_SERVER_URL");
         final String gitUrl = System.getenv("GITHUB_REPOSITORY");
-        if (gitUrl != null) {
+        if (gitServer != null && gitUrl != null) {
             final Property gitUrlProperty = new Property();
             gitUrlProperty.setName("gitUrl");
-            gitUrlProperty.setValue(gitUrl);
+            gitUrlProperty.setValue(gitServer + "/" + gitUrl);
             metadata.addProperty(gitUrlProperty);
         }
 

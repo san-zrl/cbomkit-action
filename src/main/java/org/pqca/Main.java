@@ -25,7 +25,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
@@ -39,11 +38,6 @@ public class Main {
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(@Nonnull String[] args) {
-        Map<String, String> env = System.getenv();
-        for (String envName : env.keySet()) {
-            LOG.info("{}={}", envName, env.get(envName));
-        }
-
         final String workspace = System.getenv("GITHUB_WORKSPACE");
         final File projectDirectory = new File(workspace);
         final BomGenerator bomGenerator = new BomGenerator(projectDirectory);
