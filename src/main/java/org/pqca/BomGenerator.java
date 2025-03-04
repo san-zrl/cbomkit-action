@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.List;
 import org.cyclonedx.Version;
@@ -190,14 +191,16 @@ public class BomGenerator {
         if (commit != null) {
             final Property commitProperty = new Property();
             commitProperty.setName("commit");
-            commitProperty.setValue(commit);
+            commitProperty.setValue(commit.substring(0, 7));
             metadata.addProperty(commitProperty);
         }
 
         if (!packageMetadata.packageDir().equals(projectDirectory)) {
+            final Path relPackageDir =
+                    packageMetadata.packageDir().toPath().relativize(projectDirectory.toPath());
             final Property packageFolderProperty = new Property();
             packageFolderProperty.setName("packageFolder");
-            packageFolderProperty.setValue(packageMetadata.packageDir().toString());
+            packageFolderProperty.setValue(relPackageDir.toString());
             metadata.addProperty(packageFolderProperty);
         }
 
