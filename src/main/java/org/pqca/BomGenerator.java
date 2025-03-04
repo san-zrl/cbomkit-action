@@ -198,7 +198,7 @@ public class BomGenerator {
 
         if (!packageMetadata.packageDir().equals(projectDirectory)) {
             final Path relPackageDir =
-                    packageMetadata.packageDir().toPath().relativize(projectDirectory.toPath());
+                    projectDirectory.toPath().relativize(packageMetadata.packageDir().toPath());
             final Property packageFolderProperty = new Property();
             packageFolderProperty.setName("packageFolder");
             packageFolderProperty.setValue(relPackageDir.toString());
