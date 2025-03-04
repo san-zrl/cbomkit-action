@@ -19,6 +19,7 @@
  */
 package org.pqca;
 
+import com.ibm.output.IOutputFileFactory;
 import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.io.FileFilter;
@@ -75,6 +76,9 @@ public class BomGenerator {
                         new JavaScannerService(javaJars, pm.packageDir());
                 final Bom javaBom = javaScannerService.scan(packageModules);
                 writeBom(pm, javaBom);
+                final com.ibm.plugin.ScannerManager scannerMgr =
+                        new com.ibm.plugin.ScannerManager(IOutputFileFactory.DEFAULT);
+                scannerMgr.reset();
             } else {
                 LOG.info("No java source code to scan.");
             }
@@ -101,6 +105,9 @@ public class BomGenerator {
                         new PythonScannerService(pm.packageDir());
                 final Bom pythonBom = pythonScannerService.scan(packageModules);
                 writeBom(pm, pythonBom);
+                final com.ibm.plugin.ScannerManager scannerMgr =
+                        new com.ibm.plugin.ScannerManager(IOutputFileFactory.DEFAULT);
+                scannerMgr.reset();
             } else {
                 LOG.info("No python source code to scan.");
             }
