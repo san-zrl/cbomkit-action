@@ -19,7 +19,7 @@
  */
 package org.pqca;
 
-import com.ibm.output.IOutputFileFactory;
+import com.ibm.plugin.ScannerManager;
 import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.io.FileFilter;
@@ -34,6 +34,7 @@ import org.cyclonedx.generators.json.BomJsonGenerator;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.OrganizationalEntity;
+import org.cyclonedx.model.Property;
 import org.cyclonedx.model.Service;
 import org.cyclonedx.model.metadata.ToolInformation;
 import org.pqca.errors.CouldNotLoadJavaJars;
@@ -52,6 +53,8 @@ public class BomGenerator {
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
     private static final String ACTION_NAME = "CBOMkit-action";
     private static final String ACTION_ORG = "PQCA";
+
+    private static final ScannerManager scannerMgr = new ScannerManager(null);
 
     @Nonnull private final File projectDirectory;
 
@@ -76,9 +79,6 @@ public class BomGenerator {
                         new JavaScannerService(javaJars, pm.packageDir());
                 final Bom javaBom = javaScannerService.scan(packageModules);
                 writeBom(pm, javaBom);
-                final com.ibm.plugin.ScannerManager scannerMgr =
-                        new com.ibm.plugin.ScannerManager(IOutputFileFactory.DEFAULT);
-                scannerMgr.reset();
             } else {
                 LOG.info("No java source code to scan.");
             }
@@ -105,9 +105,6 @@ public class BomGenerator {
                         new PythonScannerService(pm.packageDir());
                 final Bom pythonBom = pythonScannerService.scan(packageModules);
                 writeBom(pm, pythonBom);
-                final com.ibm.plugin.ScannerManager scannerMgr =
-                        new com.ibm.plugin.ScannerManager(IOutputFileFactory.DEFAULT);
-                scannerMgr.reset();
             } else {
                 LOG.info("No python source code to scan.");
             }
@@ -133,8 +130,8 @@ public class BomGenerator {
         writeBom(new PackageMetadata(projectDirectory, null, null, null), bom);
     }
 
-    private static void writeBom(PackageMetadata packageMetadata, Bom bom) {
-        bom.setMetadata(generateMetadata());
+    private void writeBom(PackageMetadata packageMetadata, Bom bom) {
+        bom.setMetadata(generateMetadata(packageMetadata));
 
         final BomJsonGenerator bomGenerator =
                 BomGeneratorFactory.createJson(Version.VERSION_16, bom);
@@ -143,22 +140,23 @@ public class BomGenerator {
             String bomString = bomGenerator.toJsonString();
             if (bomString == null) {
                 LOG.error("Empty CBOM");
-            }
-
-            final String fileName = packageMetadata.getCbomFileName();
-            LOG.info(
-                    "Writing cbom {} with {} components",
-                    fileName,
-                    bom.getComponents() == null ? 0 : bom.getComponents().size());
-            try (FileWriter writer = new FileWriter(fileName)) {
-                writer.write(bomString);
+            } else {
+                final String fileName = packageMetadata.getCbomFileName();
+                LOG.info(
+                        "Writing cbom {} with {} components",
+                        fileName,
+                        bom.getComponents() == null ? 0 : bom.getComponents().size());
+                try (FileWriter writer = new FileWriter(fileName)) {
+                    writer.write(bomString);
+                }
             }
         } catch (IOException | GeneratorException e) {
             LOG.error(e.getMessage(), e);
         }
+        scannerMgr.reset();
     }
 
-    private static Metadata generateMetadata() {
+    private Metadata generateMetadata(PackageMetadata packageMetadata) {
         final Metadata metadata = new Metadata();
         metadata.setTimestamp(new Date());
 
@@ -171,6 +169,37 @@ public class BomGenerator {
         scannerService.setProvider(organization);
         scannerInfo.setServices(List.of(scannerService));
         metadata.setToolChoice(scannerInfo);
+
+        final String gitUrl = System.getenv("GITHUB_REPOSITORY");
+        if (gitUrl != null) {
+            final Property gitUrlProperty = new Property();
+            gitUrlProperty.setName("gitUrl");
+            gitUrlProperty.setValue(gitUrl);
+            metadata.addProperty(gitUrlProperty);
+        }
+
+        final String revision = System.getenv("GITHUB_REF_NAME");
+        if (revision != null) {
+            final Property revisionProperty = new Property();
+            revisionProperty.setName("revision");
+            revisionProperty.setValue(revision);
+            metadata.addProperty(revisionProperty);
+        }
+
+        final String commit = System.getenv("GITHUB_SHA");
+        if (commit != null) {
+            final Property commitProperty = new Property();
+            commitProperty.setName("commit");
+            commitProperty.setValue(commit);
+            metadata.addProperty(commitProperty);
+        }
+
+        if (!packageMetadata.packageDir().equals(projectDirectory)) {
+            final Property packageFolderProperty = new Property();
+            packageFolderProperty.setName("packageFolder");
+            packageFolderProperty.setValue(packageMetadata.packageDir().toString());
+            metadata.addProperty(packageFolderProperty);
+        }
 
         return metadata;
     }
