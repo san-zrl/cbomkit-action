@@ -20,10 +20,10 @@
 package org.pqca.errors;
 
 import jakarta.annotation.Nonnull;
-import java.nio.file.Path;
+import java.io.File;
 
 public class CouldNotLoadJavaJars extends Exception {
-    public CouldNotLoadJavaJars(@Nonnull Path path) {
-        super("Couldn't load Java jars from " + path);
+    public CouldNotLoadJavaJars(@Nonnull File dir) {
+        super("Couldn't load Java jars from " + dir);
     }
 }

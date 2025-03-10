@@ -1,8 +1,8 @@
 name: 'CBOMkit-action'
 description: 'Generate CBOM from source code'
 outputs:
-  filename:
-    description: 'CBOM file name'
+  pattern:
+    description: 'CBOM file name pattern'
 runs:
   using: 'docker'
   image: 'Dockerfile'

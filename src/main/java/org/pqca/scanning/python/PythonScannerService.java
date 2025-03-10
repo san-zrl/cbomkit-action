@@ -20,9 +20,7 @@
 package org.pqca.scanning.python;
 
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
 import org.cyclonedx.model.Bom;
 import org.pqca.indexing.ProjectModule;
@@ -39,7 +37,7 @@ public final class PythonScannerService extends ScannerService {
     }
 
     @Override
-    public @Nonnull Bom scan(@Nullable Path packageFolder, @Nonnull List<ProjectModule> index) {
+    public @Nonnull Bom scan(@Nonnull List<ProjectModule> index) {
         final PythonCheck visitor = new PythonDetectionCollectionRule(this);
 
         for (ProjectModule project : index) {

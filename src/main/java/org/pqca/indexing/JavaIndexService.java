@@ -31,12 +31,7 @@ public final class JavaIndexService extends IndexingService {
 
     @Override
     boolean isModule(@Nonnull File[] files) {
-        return Arrays.stream(files)
-                .anyMatch(
-                        f ->
-                                f.getName().equals("pom.xml")
-                                        || f.getName().equals("build.gradle")
-                                        || f.getName().equals("build.gradle.kts"));
+        return Arrays.stream(files).anyMatch(f -> f.getName().equals("pom.xml"));
     }
 
     @Override
