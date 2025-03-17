@@ -22,7 +22,6 @@ package org.pqca.scanning;
 import com.ibm.mapper.model.INode;
 import com.ibm.output.IOutputFileFactory;
 import com.ibm.output.cyclondx.CBOMOutputFile;
-import com.ibm.output.cyclondx.CBOMOutputFileFactory;
 import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.util.Collections;
@@ -32,12 +31,8 @@ import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Evidence;
 import org.cyclonedx.model.component.evidence.Occurrence;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class ScannerService implements IScannerService {
-    protected static final Logger LOGGER = LoggerFactory.getLogger(ScannerService.class);
-
     @Nonnull protected final File projectDirectory;
     @Nonnull protected final CBOMOutputFile cbomOutputFile;
 
@@ -51,13 +46,13 @@ public abstract class ScannerService implements IScannerService {
         synchronized (this) {
             this.cbomOutputFile.add(nodes);
         }
-        // emit
-        final CBOMOutputFileFactory fileFactory = new CBOMOutputFileFactory();
-        final CBOMOutputFile componentAsCBOM = fileFactory.createOutputFormat(nodes);
-        componentAsCBOM
-                .getBom()
-                .getComponents()
-                .forEach(component -> sanitizeOccurrence(this.projectDirectory, component));
+        // No need to emit sanitized occurences
+        // final CBOMOutputFileFactory fileFactory = new CBOMOutputFileFactory();
+        // final CBOMOutputFile componentAsCBOM = fileFactory.createOutputFormat(nodes);
+        // componentAsCBOM
+        //         .getBom()
+        //         .getComponents()
+        //         .forEach(component -> sanitizeOccurrence(this.projectDirectory, component))ß;
     }
 
     @Nonnull
@@ -90,7 +85,6 @@ public abstract class ScannerService implements IScannerService {
                         occurrence.setLocation(
                                 occurrence.getLocation().substring(baseDirPath.length() + 1));
                     }
-                    LOGGER.info("Sanitized {}", occurrence.getLocation());
                 });
     }
 }

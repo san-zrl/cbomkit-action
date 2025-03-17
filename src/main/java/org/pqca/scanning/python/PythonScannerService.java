@@ -25,12 +25,15 @@ import java.util.List;
 import org.cyclonedx.model.Bom;
 import org.pqca.indexing.ProjectModule;
 import org.pqca.scanning.ScannerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.plugins.python.api.PythonCheck;
 import org.sonar.plugins.python.api.PythonVisitorContext;
 import org.sonar.plugins.python.api.tree.FileInput;
 
 public final class PythonScannerService extends ScannerService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PythonScannerService.class);
 
     public PythonScannerService(@Nonnull File projectDirectory) {
         super(projectDirectory);

@@ -25,6 +25,8 @@ import java.util.List;
 import org.cyclonedx.model.Bom;
 import org.pqca.indexing.ProjectModule;
 import org.pqca.scanning.ScannerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.internal.DefaultFileSystem;
 import org.sonar.api.batch.sensor.internal.SensorContextTester;
 import org.sonar.api.config.internal.MapSettings;
@@ -37,6 +39,8 @@ import org.sonar.plugins.java.api.JavaCheck;
 import org.sonar.plugins.java.api.JavaVersion;
 
 public final class JavaScannerService extends ScannerService {
+    protected static final Logger LOGGER = LoggerFactory.getLogger(JavaScannerService.class);
+
     private static final JavaVersion JAVA_VERSION =
             new JavaVersionImpl(JavaVersionImpl.MAX_SUPPORTED);
 
