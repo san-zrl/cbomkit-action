@@ -31,8 +31,12 @@ import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Evidence;
 import org.cyclonedx.model.component.evidence.Occurrence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class ScannerService implements IScannerService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScannerService.class);
+
     @Nonnull protected final File projectDirectory;
     @Nonnull protected final CBOMOutputFile cbomOutputFile;
 
@@ -86,5 +90,6 @@ public abstract class ScannerService implements IScannerService {
                                 occurrence.getLocation().substring(baseDirPath.length() + 1));
                     }
                 });
+        LOGGER.info("Scanner generated {} findings", occurrenceList.size());
     }
 }
