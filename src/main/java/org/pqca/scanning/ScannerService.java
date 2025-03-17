@@ -90,6 +90,7 @@ public abstract class ScannerService implements IScannerService {
                         occurrence.setLocation(
                                 occurrence.getLocation().substring(baseDirPath.length() + 1));
                     }
+                    LOGGER.info("Sanitized {}", occurrence.getLocation());
                 });
     }
 }

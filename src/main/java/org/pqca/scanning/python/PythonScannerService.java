@@ -40,9 +40,10 @@ public final class PythonScannerService extends ScannerService {
     public @Nonnull Bom scan(@Nonnull List<ProjectModule> index) {
         final PythonCheck visitor = new PythonDetectionCollectionRule(this);
 
+        LOGGER.info("Start scanning {} python projects", index.size());
+
         for (ProjectModule project : index) {
             for (InputFile inputFile : project.inputFileList()) {
-                LOGGER.info("Scanning file: {}", inputFile.filename());
                 final PythonScannableFile pythonScannableFile = new PythonScannableFile(inputFile);
                 final FileInput parsedFile = pythonScannableFile.parse();
                 final PythonVisitorContext context =
