@@ -19,7 +19,6 @@
  */
 package org.pqca;
 
-import com.ibm.plugin.ScannerManager;
 import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.io.FileFilter;
@@ -54,8 +53,6 @@ public class BomGenerator {
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
     private static final String ACTION_NAME = "CBOMkit-action";
     private static final String ACTION_ORG = "PQCA";
-
-    private static final ScannerManager scannerMgr = new ScannerManager(null);
 
     @Nonnull private final File projectDirectory;
 
@@ -154,7 +151,6 @@ public class BomGenerator {
         } catch (IOException | GeneratorException e) {
             LOG.error(e.getMessage(), e);
         }
-        scannerMgr.reset();
     }
 
     private Metadata generateMetadata(PackageMetadata packageMetadata) {

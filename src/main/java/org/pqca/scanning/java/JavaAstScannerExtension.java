@@ -164,7 +164,10 @@ public class JavaAstScannerExtension extends JavaAstScanner {
         try {
             visitor.setCurrentFile(inputFile);
             if (inputFile.filename().endsWith("Layer.java")) {
-                LOG.info("Analysing Layer.java");
+                LOG.info("Analysing {}", inputFile.file().getAbsolutePath());
+                LOG.info(
+                        "visitFile parameter is {}",
+                        sonarComponents != null && sonarComponents.fileCanBeSkipped(inputFile));
             }
             JavaTree.CompilationUnitTreeImpl ast = result.get();
             visitor.visitFile(
