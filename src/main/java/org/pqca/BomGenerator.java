@@ -32,6 +32,7 @@ import org.cyclonedx.exception.GeneratorException;
 import org.cyclonedx.generators.BomGeneratorFactory;
 import org.cyclonedx.generators.json.BomJsonGenerator;
 import org.cyclonedx.model.Bom;
+import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.OrganizationalEntity;
 import org.cyclonedx.model.Property;
@@ -69,16 +70,14 @@ public class BomGenerator {
         final MavenPackageFinderService packageFinder =
                 new MavenPackageFinderService(projectDirectory);
         for (PackageMetadata pm : packageFinder.findPackages()) {
-            LOG.info("Scanning maven package {}", pm.packageDir());
             final List<ProjectModule> packageModules =
                     getPackageModules(javaProjectModules, pm.packageDir());
             if (!packageModules.isEmpty()) {
+                LOG.info("Scanning maven package {}", pm.packageDir());
                 final JavaScannerService javaScannerService =
                         new JavaScannerService(javaJars, pm.packageDir());
                 final Bom javaBom = javaScannerService.scan(packageModules);
                 writeBom(pm, javaBom);
-            } else {
-                LOG.info("No java source code to scan.");
             }
         }
 
@@ -95,16 +94,14 @@ public class BomGenerator {
         final PythonPackageFinderService packageFinder =
                 new PythonPackageFinderService(projectDirectory);
         for (PackageMetadata pm : packageFinder.findPackages()) {
-            LOG.info("Scanning python package {}", pm.packageDir());
             final List<ProjectModule> packageModules =
                     getPackageModules(pythonProjectModules, pm.packageDir());
             if (!packageModules.isEmpty()) {
+                LOG.info("Scanning python package {}", pm.packageDir());
                 final PythonScannerService pythonScannerService =
                         new PythonScannerService(pm.packageDir());
                 final Bom pythonBom = pythonScannerService.scan(packageModules);
                 writeBom(pm, pythonBom);
-            } else {
-                LOG.info("No python source code to scan.");
             }
         }
 
@@ -140,10 +137,15 @@ public class BomGenerator {
                 LOG.error("Empty CBOM");
             } else {
                 final String fileName = packageMetadata.getCbomFileName();
-                LOG.info(
-                        "Writing cbom {} with {} components",
-                        fileName,
-                        bom.getComponents() == null ? 0 : bom.getComponents().size());
+
+                int numFindings = 0;
+                if (bom.getComponents() != null) {
+                    for (Component c : bom.getComponents()) {
+                        numFindings += c.getEvidence().getOccurrences().size();
+                    }
+                }
+                LOG.info("Writing cbom {} with {} findings", fileName, numFindings);
+
                 try (FileWriter writer = new FileWriter(fileName)) {
                     writer.write(bomString);
                 }

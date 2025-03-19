@@ -163,16 +163,6 @@ public class JavaAstScannerExtension extends JavaAstScanner {
 
         try {
             visitor.setCurrentFile(inputFile);
-            if (inputFile
-                    .file()
-                    .getAbsolutePath()
-                    .endsWith(
-                            "spring-boot-project/spring-boot-tools/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/docker/type/Layer.java")) {
-                LOG.info("Analysing {}", inputFile.file().getAbsolutePath());
-                LOG.info(
-                        "visitFile parameter is {}",
-                        sonarComponents != null && sonarComponents.fileCanBeSkipped(inputFile));
-            }
             JavaTree.CompilationUnitTreeImpl ast = result.get();
             visitor.visitFile(
                     ast, sonarComponents != null && sonarComponents.fileCanBeSkipped(inputFile));

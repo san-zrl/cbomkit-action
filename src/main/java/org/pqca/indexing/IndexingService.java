@@ -24,10 +24,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import jakarta.annotation.Nonnull;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
@@ -41,6 +43,21 @@ public abstract class IndexingService {
     private final String languageIdentifier;
     private final String languageFileExtension;
     @Nonnull private File baseDirectory;
+
+    public class IndexFileFilter implements FileFilter {
+        private final String extension;
+
+        public IndexFileFilter(String extension) {
+            this.extension = extension;
+        }
+
+        @Override
+        public boolean accept(File f) {
+            return !excludeFromIndexing(f)
+                    && ((f.isDirectory() && !".git".equals(f.getName()))
+                            || (f.isFile() && f.getName().endsWith(this.extension)));
+        }
+    }
 
     protected IndexingService(
             @Nonnull File baseDirectory,
@@ -77,7 +94,10 @@ public abstract class IndexingService {
             if (!files.isEmpty()) {
                 String projectIdentifier = getProjectIdentifier(projectDirectory);
                 LOGGER.info(
-                        "Created project module '{}' [{} files]", projectIdentifier, files.size());
+                        "Created project module '{}' [{} {} files]",
+                        projectIdentifier,
+                        files.size(),
+                        languageFileExtension);
                 ProjectModule project = new ProjectModule(projectIdentifier, files);
                 projectModules.add(project);
             }
@@ -88,19 +108,17 @@ public abstract class IndexingService {
     @Nonnull
     public List<InputFile> getFiles(
             @Nonnull File directory, @Nonnull final List<InputFile> inputFiles) {
-        File[] filesInDir = directory.listFiles();
+        File[] filesInDir = directory.listFiles(new IndexFileFilter(this.languageFileExtension));
         if (filesInDir == null) {
             return Collections.emptyList();
         }
         LOGGER.debug("Extracting files from directory: {}", directory);
 
+        Arrays.sort(filesInDir);
         for (File file : filesInDir) {
-            if (excludeFromIndexing(file)) {
-                continue;
-            }
-            if (file.isDirectory() && !".git".equals(file.getName())) {
+            if (file.isDirectory()) {
                 getFiles(new File(directory + File.separator + file.getName()), inputFiles);
-            } else if (file.isFile() && file.getName().endsWith(this.languageFileExtension)) {
+            } else {
                 LOGGER.debug("Found file: {}", file);
                 try {
                     TestInputFileBuilder builder = createTestFileBuilder(directory, file);
