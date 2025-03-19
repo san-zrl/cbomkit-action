@@ -5,4 +5,4 @@ COPY --chown=0:0 src/main/resources/java/scan/*.jar /java/scan/
 
 ENV CBOMKIT_JAVA_JAR_DIR="/java/scan/"
 
-CMD ["java","-Xmx16g","-jar","/CBOMkit-action.jar"]
+CMD ["java","-Xmx48g","-jar","/CBOMkit-action.jar"]
