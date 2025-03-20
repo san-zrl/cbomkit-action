@@ -38,33 +38,46 @@ public class MavenPackageFinderService extends PackageFinderService {
 
     @Override
     public boolean isBuildFile(@Nonnull Path file) {
-        return file.endsWith("pom.xml");
+        return file.endsWith("pom.xml")
+                || file.endsWith("build.gradle")
+                || file.endsWith("build.gradle.kts");
     }
 
     @Override
     @Nullable public PackageMetadata getMetadata(@Nonnull Path buildFile) {
-        try {
-            final Model model = reader.read(new FileReader(buildFile.toFile()));
-            final String artifactId = model.getArtifactId();
-            if (!artifactId.endsWith("-parent")) {
-                String groupId = null;
-                String version = null;
-                Parent parent = model.getParent();
-                if (parent != null) {
-                    groupId = parent.getGroupId();
-                    version = parent.getVersion();
+        if (buildFile.endsWith("pom.xml")) {
+            try {
+                final Model model = reader.read(new FileReader(buildFile.toFile()));
+                final String artifactId = model.getArtifactId();
+                if (!artifactId.endsWith("-parent")) {
+                    String groupId = null;
+                    String version = null;
+                    Parent parent = model.getParent();
+                    if (parent != null) {
+                        groupId = parent.getGroupId();
+                        version = parent.getVersion();
+                    }
+                    if (model.getGroupId() != null) {
+                        groupId = model.getGroupId();
+                    }
+                    if (model.getVersion() != null) {
+                        version = model.getVersion();
+                    }
+                    return new PackageMetadata(
+                            buildFile.getParent().toFile(), groupId, artifactId, version);
                 }
-                if (model.getGroupId() != null) {
-                    groupId = model.getGroupId();
-                }
-                if (model.getVersion() != null) {
-                    version = model.getVersion();
-                }
-                return new PackageMetadata(
-                        buildFile.getParent().toFile(), groupId, artifactId, version);
+            } catch (Exception e) {
+                // nothing
             }
-        } catch (Exception e) {
-            // nothing
+        } else {
+            String name =
+                    buildFile
+                            .getParent()
+                            .toString()
+                            .replaceFirst("^" + root.toString() + "/", "")
+                            .replaceFirst("/src$", "")
+                            .replaceAll("/", ".");
+            return new PackageMetadata(buildFile.getParent().toFile(), null, name, null);
         }
         return null;
     }
