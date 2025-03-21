@@ -115,6 +115,7 @@ public abstract class IndexingService {
             return Collections.emptyList();
         }
 
+        Arrays.sort(filesInDir);
         if (isModule(directory)) {
             LOGGER.debug("Extracting projects from module: {}", directory);
             for (File file : filesInDir) {
@@ -126,7 +127,6 @@ public abstract class IndexingService {
         }
 
         LOGGER.debug("Extracting files from directory: {}", directory);
-        Arrays.sort(filesInDir);
         for (File file : filesInDir) {
             if (file.isDirectory()) {
                 getFiles(
