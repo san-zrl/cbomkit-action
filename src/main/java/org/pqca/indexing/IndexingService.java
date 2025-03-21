@@ -75,22 +75,22 @@ public abstract class IndexingService {
 
     private List<ProjectModule> detectModules(
             @Nonnull File projectDirectory, @Nonnull List<ProjectModule> projectModules) {
-        final File[] filesInDir = projectDirectory.listFiles();
-        if (filesInDir == null) {
-            return Collections.emptyList();
-        }
+        if (isModule(projectDirectory)) {
+            final File[] filesInDir =
+                    projectDirectory.listFiles(new IndexFileFilter(this.languageFileExtension));
+            if (filesInDir == null) {
+                return Collections.emptyList();
+            }
 
-        if (isModule(filesInDir)) {
             LOGGER.debug("Extracting projects from module: {}", projectDirectory);
+            Arrays.sort(filesInDir);
             for (File file : filesInDir) {
-                if (file.isDirectory()
-                        && !".git".equals(file.getName())
-                        && !excludeFromIndexing(file)) {
+                if (file.isDirectory()) {
                     this.detectModules(file, projectModules);
                 }
             }
         } else {
-            List<InputFile> files = getFiles(projectDirectory, new ArrayList<>());
+            List<InputFile> files = getFiles(projectDirectory, projectModules, new ArrayList<>());
             if (!files.isEmpty()) {
                 String projectIdentifier = getProjectIdentifier(projectDirectory);
                 LOGGER.info(
@@ -107,17 +107,32 @@ public abstract class IndexingService {
 
     @Nonnull
     public List<InputFile> getFiles(
-            @Nonnull File directory, @Nonnull final List<InputFile> inputFiles) {
+            @Nonnull File directory,
+            @Nonnull List<ProjectModule> projectModules,
+            @Nonnull final List<InputFile> inputFiles) {
         File[] filesInDir = directory.listFiles(new IndexFileFilter(this.languageFileExtension));
         if (filesInDir == null) {
             return Collections.emptyList();
         }
-        LOGGER.debug("Extracting files from directory: {}", directory);
 
+        if (isModule(directory)) {
+            LOGGER.debug("Extracting projects from module: {}", directory);
+            for (File file : filesInDir) {
+                if (file.isDirectory()) {
+                    this.detectModules(file, projectModules);
+                }
+            }
+            return Collections.emptyList();
+        }
+
+        LOGGER.debug("Extracting files from directory: {}", directory);
         Arrays.sort(filesInDir);
         for (File file : filesInDir) {
             if (file.isDirectory()) {
-                getFiles(new File(directory + File.separator + file.getName()), inputFiles);
+                getFiles(
+                        new File(directory + File.separator + file.getName()),
+                        projectModules,
+                        inputFiles);
             } else {
                 LOGGER.debug("Found file: {}", file);
                 try {
@@ -162,7 +177,7 @@ public abstract class IndexingService {
         return baseDirectory.toPath().relativize(directory.toPath()).toString();
     }
 
-    abstract boolean isModule(@Nonnull File[] files);
+    abstract boolean isModule(@Nonnull File directory);
 
     abstract boolean excludeFromIndexing(@Nonnull File file);
 }

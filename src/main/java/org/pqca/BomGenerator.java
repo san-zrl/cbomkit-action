@@ -25,6 +25,7 @@ import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import org.cyclonedx.Version;
@@ -42,7 +43,7 @@ import org.pqca.errors.CouldNotLoadJavaJars;
 import org.pqca.indexing.JavaIndexService;
 import org.pqca.indexing.ProjectModule;
 import org.pqca.indexing.PythonIndexService;
-import org.pqca.packages.MavenPackageFinderService;
+import org.pqca.packages.JavaPackageFinderService;
 import org.pqca.packages.PackageMetadata;
 import org.pqca.packages.PythonPackageFinderService;
 import org.pqca.scanning.java.JavaScannerService;
@@ -62,35 +63,37 @@ public class BomGenerator {
     }
 
     @Nonnull
-    public Bom generateJavaBoms() throws CouldNotLoadJavaJars {
+    public List<Bom> generateJavaBoms() throws CouldNotLoadJavaJars {
         final JavaIndexService javaIndexService = new JavaIndexService(projectDirectory);
         final List<ProjectModule> javaProjectModules = javaIndexService.index();
-
         final List<File> javaJars = getJavaJars();
-        final MavenPackageFinderService packageFinder =
-                new MavenPackageFinderService(projectDirectory);
+        final List<Bom> javaBoms = new ArrayList<>();
+        final JavaPackageFinderService packageFinder =
+                new JavaPackageFinderService(projectDirectory);
         for (PackageMetadata pm : packageFinder.findPackages()) {
             final List<ProjectModule> packageModules =
                     getPackageModules(javaProjectModules, pm.packageDir());
             if (!packageModules.isEmpty()) {
-                LOG.info("Scanning maven package {}", pm.packageDir());
+                LOG.info("Scanning java package {}", pm.packageDir());
                 final JavaScannerService javaScannerService =
                         new JavaScannerService(javaJars, pm.packageDir());
                 final Bom javaBom = javaScannerService.scan(packageModules);
                 writeBom(pm, javaBom);
+                javaBoms.add(javaBom);
             }
         }
+        return javaBoms;
 
-        final JavaScannerService javaScannerService =
-                new JavaScannerService(javaJars, projectDirectory);
-        return javaScannerService.scan(javaProjectModules);
+        // final JavaScannerService javaScannerService =
+        //         new JavaScannerService(javaJars, projectDirectory);
+        // return javaScannerService.scan(javaProjectModules);
     }
 
     @Nonnull
-    public Bom generatePythonBoms() {
+    public List<Bom> generatePythonBoms() {
         final PythonIndexService pythonIndexService = new PythonIndexService(projectDirectory);
         final List<ProjectModule> pythonProjectModules = pythonIndexService.index();
-
+        final List<Bom> pythonBoms = new ArrayList<>();
         final PythonPackageFinderService packageFinder =
                 new PythonPackageFinderService(projectDirectory);
         for (PackageMetadata pm : packageFinder.findPackages()) {
@@ -102,12 +105,14 @@ public class BomGenerator {
                         new PythonScannerService(pm.packageDir());
                 final Bom pythonBom = pythonScannerService.scan(packageModules);
                 writeBom(pm, pythonBom);
+                pythonBoms.add(pythonBom);
             }
         }
+        return pythonBoms;
 
-        final PythonScannerService pythonScannerService =
-                new PythonScannerService(projectDirectory);
-        return pythonScannerService.scan(pythonProjectModules);
+        // final PythonScannerService pythonScannerService =
+        //         new PythonScannerService(projectDirectory);
+        // return pythonScannerService.scan(pythonProjectModules);
     }
 
     private List<ProjectModule> getPackageModules(List<ProjectModule> allModules, File packageDir) {
@@ -115,9 +120,11 @@ public class BomGenerator {
                 .filter(
                         pm ->
                                 projectDirectory
-                                        .toPath()
-                                        .resolve(pm.identifier())
-                                        .startsWith(packageDir.toPath()))
+                                                .toPath()
+                                                .resolve(pm.identifier())
+                                                .relativize(packageDir.toPath())
+                                                .getNameCount()
+                                        == 1)
                 .toList();
     }
 
