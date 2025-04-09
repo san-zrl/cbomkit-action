@@ -23,22 +23,12 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import java.io.File;
 
-public record PackageMetadata(
-        @Nonnull File packageDir,
-        @Nullable String namespace,
-        @Nonnull String name,
-        @Nullable String version) {
+public record PackageMetadata(@Nonnull File packageDir, @Nullable String name) {
 
     public String getCbomFileName() {
         StringBuilder sb = new StringBuilder("cbom");
-        if (namespace != null) {
-            sb.append("_" + namespace);
-        }
         if (name != null) {
-            sb.append("_" + name);
-        }
-        if (version != null) {
-            sb.append("_" + version);
+            sb.append("_" + name.replaceAll("/", "."));
         }
         sb.append(".json");
         return sb.toString();

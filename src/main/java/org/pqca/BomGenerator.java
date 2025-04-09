@@ -21,13 +21,13 @@ package org.pqca;
 
 import jakarta.annotation.Nonnull;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import org.cyclonedx.Version;
 import org.cyclonedx.exception.GeneratorException;
 import org.cyclonedx.generators.BomGeneratorFactory;
@@ -56,17 +56,37 @@ public class BomGenerator {
     private static final String ACTION_NAME = "CBOMkit-action";
     private static final String ACTION_ORG = "PQCA";
 
+    @Nonnull private final String javaJarDir;
     @Nonnull private final File projectDirectory;
+    @Nonnull private final File outputDir;
 
-    public BomGenerator(@Nonnull File projectDirectory) {
+    public BomGenerator(@Nonnull File projectDirectory, File outputDir) {
+        this.javaJarDir = getJavaDependencyJARSPath();
         this.projectDirectory = projectDirectory;
+        this.outputDir = outputDir;
+    }
+
+    @Nonnull
+    private String getJavaDependencyJARSPath() {
+        File javaJarDir =
+                Optional.ofNullable(System.getenv("CBOMKIT_JAVA_JAR_DIR"))
+                        .map(relativeDir -> new File(relativeDir))
+                        .orElseThrow(
+                                () ->
+                                        new IllegalStateException(
+                                                "Could not load jar dependencies for java scanning")); // Error
+        if (javaJarDir.exists() && javaJarDir.isDirectory()) {
+            return javaJarDir.getAbsolutePath();
+        }
+
+        throw new IllegalStateException(
+                "Jar dependencies dir for java scanning does not exist or is not directory");
     }
 
     @Nonnull
     public List<Bom> generateJavaBoms() throws CouldNotLoadJavaJars {
         final JavaIndexService javaIndexService = new JavaIndexService(projectDirectory);
-        final List<ProjectModule> javaProjectModules = javaIndexService.index();
-        final List<File> javaJars = getJavaJars();
+        final List<ProjectModule> javaProjectModules = javaIndexService.index(null);
         final List<Bom> javaBoms = new ArrayList<>();
         final JavaPackageFinderService packageFinder =
                 new JavaPackageFinderService(projectDirectory);
@@ -76,7 +96,7 @@ public class BomGenerator {
             if (!packageModules.isEmpty()) {
                 LOG.info("Scanning java package {}", pm.packageDir());
                 final JavaScannerService javaScannerService =
-                        new JavaScannerService(javaJars, pm.packageDir());
+                        new JavaScannerService(javaJarDir, pm.packageDir());
                 final Bom javaBom = javaScannerService.scan(packageModules);
                 writeBom(pm, javaBom);
                 javaBoms.add(javaBom);
@@ -84,15 +104,15 @@ public class BomGenerator {
         }
         return javaBoms;
 
-        // final JavaScannerService javaScannerService =
-        //         new JavaScannerService(javaJars, projectDirectory);
-        // return javaScannerService.scan(javaProjectModules);
+        //     final JavaScannerService javaScannerService =
+        //             new JavaScannerService(javaJarDir, projectDirectory);
+        //     return javaScannerService.scan(javaProjectModules);
     }
 
     @Nonnull
     public List<Bom> generatePythonBoms() {
         final PythonIndexService pythonIndexService = new PythonIndexService(projectDirectory);
-        final List<ProjectModule> pythonProjectModules = pythonIndexService.index();
+        final List<ProjectModule> pythonProjectModules = pythonIndexService.index(null);
         final List<Bom> pythonBoms = new ArrayList<>();
         final PythonPackageFinderService packageFinder =
                 new PythonPackageFinderService(projectDirectory);
@@ -120,16 +140,14 @@ public class BomGenerator {
                 .filter(
                         pm ->
                                 projectDirectory
-                                                .toPath()
-                                                .resolve(pm.identifier())
-                                                .relativize(packageDir.toPath())
-                                                .getNameCount()
-                                        == 1)
+                                        .toPath()
+                                        .resolve(pm.identifier())
+                                        .equals(packageDir.toPath()))
                 .toList();
     }
 
     public void writeBom(Bom bom) {
-        writeBom(new PackageMetadata(projectDirectory, null, null, null), bom);
+        writeBom(new PackageMetadata(projectDirectory, null), bom);
     }
 
     private void writeBom(PackageMetadata packageMetadata, Bom bom) {
@@ -143,17 +161,26 @@ public class BomGenerator {
             if (bomString == null) {
                 LOG.error("Empty CBOM");
             } else {
-                final String fileName = packageMetadata.getCbomFileName();
-
                 int numFindings = 0;
                 if (bom.getComponents() != null) {
                     for (Component c : bom.getComponents()) {
                         numFindings += c.getEvidence().getOccurrences().size();
                     }
                 }
-                LOG.info("Writing cbom {} with {} findings", fileName, numFindings);
 
-                try (FileWriter writer = new FileWriter(fileName)) {
+                if ("".equals(packageMetadata.name())) {
+                    LOG.info(
+                            "Writing {} top-level findings into consolidated {}/cbom.json",
+                            numFindings,
+                            this.outputDir);
+                    return;
+                }
+
+                final String fileName = packageMetadata.getCbomFileName();
+                final File cbomFile = new File(this.outputDir, fileName);
+                LOG.info("Writing cbom {} with {} findings", cbomFile, numFindings);
+
+                try (FileWriter writer = new FileWriter(cbomFile)) {
                     writer.write(bomString);
                 }
             }
@@ -211,19 +238,5 @@ public class BomGenerator {
         }
 
         return metadata;
-    }
-
-    @Nonnull
-    private static List<File> getJavaJars() throws CouldNotLoadJavaJars {
-        final String directoryPath = System.getenv("CBOMKIT_JAVA_JAR_DIR");
-        final File directory = new File(directoryPath);
-        final FileFilter jarFilter =
-                file -> file.isFile() && file.getName().toLowerCase().endsWith(".jar");
-        final File[] jars = directory.listFiles(jarFilter);
-        if (jars == null || jars.length == 0) {
-            throw new CouldNotLoadJavaJars(directory);
-        }
-        LOG.info("Loaded {} jars", jars.length);
-        return List.of(jars);
     }
 }

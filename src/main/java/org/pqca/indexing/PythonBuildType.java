@@ -17,22 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.pqca.packages;
+package org.pqca.indexing;
 
-import jakarta.annotation.Nonnull;
-import java.io.File;
-import java.nio.file.Path;
-
-public class JavaPackageFinderService extends PackageFinderService {
-
-    public JavaPackageFinderService(@Nonnull File rootFile) throws IllegalArgumentException {
-        super(rootFile);
-    }
-
-    @Override
-    public boolean isBuildFile(@Nonnull Path file) {
-        return file.endsWith("pom.xml")
-                || file.endsWith("build.gradle")
-                || file.endsWith("build.gradle.kts");
-    }
+public enum PythonBuildType implements IBuildType {
+    TOML,
+    SETUP
 }

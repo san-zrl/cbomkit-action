@@ -50,17 +50,6 @@
             <version>${sonar.plugin.api.impl.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-model</artifactId>
-            <version>3.9.9</version>
-        </dependency>
-        <dependency>
-            <groupId>org.tomlj</groupId>
-            <artifactId>tomlj</artifactId>
-            <version>1.1.1</version>
-        </dependency>
-
         <dependency> <!-- Fixes cbomkit issue #138 -->
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>

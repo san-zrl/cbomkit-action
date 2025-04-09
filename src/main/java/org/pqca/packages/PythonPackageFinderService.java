@@ -27,14 +27,8 @@ import java.io.FileReader;
 import java.nio.file.Path;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.tomlj.Toml;
-import org.tomlj.TomlParseResult;
 
 public class PythonPackageFinderService extends PackageFinderService {
-
-    private static final Pattern NAME_PATTERN = Pattern.compile("name\\s*=\\s*['\"]([^'\"]*)['\"]");
-    private static final Pattern VERSION_PATTERN =
-            Pattern.compile("version\\s*=\\s*['\"]([^'\"]*)['\"]");
 
     public PythonPackageFinderService(@Nonnull File rootFile) throws IllegalArgumentException {
         super(rootFile);
@@ -45,35 +39,6 @@ public class PythonPackageFinderService extends PackageFinderService {
         return file.endsWith("pyproject.toml")
                 || file.endsWith("setup.cfg")
                 || file.endsWith("setup.py");
-    }
-
-    @Override
-    @Nullable public PackageMetadata getMetadata(@Nonnull Path buildFile) {
-        try {
-            if (buildFile.endsWith("pyproject.toml")) {
-                TomlParseResult result = Toml.parse(buildFile);
-                final String name = result.getString("project.name");
-                if (name != null) {
-                    return new PackageMetadata(
-                            buildFile.getParent().toFile(),
-                            null,
-                            name,
-                            result.getString("project.version"));
-                }
-            } else if (buildFile.endsWith("setup.cfg") || buildFile.endsWith("setup.py")) {
-                final String name = findAttribute(NAME_PATTERN, buildFile);
-                if (name != null) {
-                    return new PackageMetadata(
-                            buildFile.getParent().toFile(),
-                            null,
-                            name,
-                            findAttribute(VERSION_PATTERN, buildFile));
-                }
-            }
-        } catch (Exception e) {
-            // nothing
-        }
-        return null;
     }
 
     @Nullable private String findAttribute(@Nonnull Pattern pattern, @Nonnull Path buildFile)

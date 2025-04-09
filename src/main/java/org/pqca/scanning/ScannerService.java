@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class ScannerService implements IScannerService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScannerService.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(ScannerService.class);
 
     @Nonnull protected final File projectDirectory;
     @Nonnull protected final CBOMOutputFile cbomOutputFile;

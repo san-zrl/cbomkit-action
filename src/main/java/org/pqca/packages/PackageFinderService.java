@@ -20,7 +20,6 @@
 package org.pqca.packages;
 
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -59,5 +58,15 @@ public abstract class PackageFinderService {
 
     public abstract boolean isBuildFile(@Nonnull Path file);
 
-    @Nullable public abstract PackageMetadata getMetadata(@Nonnull Path buildFile);
+    @Nonnull
+    public PackageMetadata getMetadata(@Nonnull Path buildFile) {
+        String name =
+                buildFile
+                        .getParent()
+                        .toString()
+                        .replaceFirst("^" + root.toString(), "")
+                        .replaceFirst("^/", "")
+                        .replaceFirst("/src$", "");
+        return new PackageMetadata(buildFile.getParent().toFile(), name);
+    }
 }
