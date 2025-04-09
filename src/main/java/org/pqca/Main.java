@@ -66,7 +66,7 @@ public class Main {
         // set output var
         final String githubOutput = System.getenv("GITHUB_OUTPUT");
         try (final FileWriter outPutVarFileWriter = new FileWriter(githubOutput, true)) {
-            outPutVarFileWriter.write("pattern=" + outputDir + File.pathSeparator + "cbom*.json\n");
+            outPutVarFileWriter.write("pattern=" + outputDir + "/cbom*.json\n");
         } catch (IOException e) {
             LOG.error(e.getMessage(), e);
         }
