@@ -1,14 +1,9 @@
 FROM registry.access.redhat.com/ubi8/openjdk-21:1.20
 
-USER 0:0
-
-COPY --chown=0:0 CBOMkit-action.jar /cbomkit-action/CBOMkit-action.jar
-COPY --chown=0:0 src/main/resources/java/scan/*.jar /cbomkit-action//java/scan/
-
-RUN ls -l /
-RUN ls -l /cbomkit-action 
+COPY CBOMkit-action.jar /cbomkit-action/CBOMkit-action.jar
+COPY src/main/resources/java/scan/*.jar /cbomkit-action/java/scan/
 
 ENV LANGUAGE='en_US:en'
-ENV CBOMKIT_JAVA_JAR_DIR="/cbombit-action/java/scan"
+ENV CBOMKIT_JAVA_JAR_DIR="/cbomkit-action/java/scan"
 
 CMD ["java","-Xmx16g","-jar","/cbomkit-action/CBOMkit-action.jar"]
