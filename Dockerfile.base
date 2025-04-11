@@ -1,9 +1,9 @@
 FROM registry.access.redhat.com/ubi8/openjdk-21:1.20
 
-USER root
+USER root:root
 RUN groupadd -r cbomkit && useradd -r -g cbomkit cbomkit
-
-USER cbomkit 
+RUN mkdir -p /app/data && chown cbomkit:cbomkit /app/data
+USER cbomkit:cbomkit
 
 COPY CBOMkit-action.jar /cbomkit-action/CBOMkit-action.jar
 COPY src/main/resources/java/scan/*.jar /cbomkit-action/java/scan/
