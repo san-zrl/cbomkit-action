@@ -51,7 +51,8 @@ public class Main {
         if (mkdirs_ok) {
             LOG.info("Created cbom output dir '{}'", outputDir);
         } else {
-            LOG.fatal("Failed to created cbom output '{}', outputDir);
+            LOG.error("Failed to created cbom output dir '{}'", outputDir);
+            return;
         }
 
         final BomGenerator bomGenerator = new BomGenerator(projectDirectory, outputDir);
