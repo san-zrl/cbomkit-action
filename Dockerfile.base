@@ -3,16 +3,14 @@ FROM registry.access.redhat.com/ubi8/openjdk-21:1.20
 #RUN id
 
 USER root:root
-#RUN mkdir -p /cbom && chown jboss:root /cbom
-#USER jboss:root
 
 COPY CBOMkit-action.jar /cbomkit-action/CBOMkit-action.jar
 COPY src/main/resources/java/scan/*.jar /cbomkit-action/java/scan/
 
 ENV LANGUAGE='en_US:en'
 ENV CBOMKIT_JAVA_JAR_DIR="/cbomkit-action/java/scan"
-ENV CBOMKIT_OUT_DIR="/cbom"
 
 RUN ls -l / && ls -l /cbomkit-action
 CMD ["java","-Xmx16g","-jar","/cbomkit-action/CBOMkit-action.jar"]
+
 
