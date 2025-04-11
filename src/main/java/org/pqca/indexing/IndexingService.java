@@ -23,13 +23,15 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.InputFile;
@@ -41,6 +43,7 @@ public abstract class IndexingService {
     private final String languageIdentifier;
     private final String languageFileExtension;
     @Nonnull private File baseDirectory;
+    @Nullable private IBuildType mainBuildType;
 
     protected IndexingService(
             @Nonnull File baseDirectory,
@@ -52,66 +55,92 @@ public abstract class IndexingService {
     }
 
     @Nonnull
-    public List<ProjectModule> index() {
-        return detectModules(baseDirectory, new ArrayList<>());
-    }
-
-    private List<ProjectModule> detectModules(
-            @Nonnull File projectDirectory, @Nonnull List<ProjectModule> projectModules) {
-        final File[] filesInDir = projectDirectory.listFiles();
-        if (filesInDir == null) {
-            return Collections.emptyList();
-        }
-
-        if (isModule(filesInDir)) {
-            LOGGER.debug("Extracting projects from module: {}", projectDirectory);
-            for (File file : filesInDir) {
-                if (file.isDirectory()
-                        && !".git".equals(file.getName())
-                        && !excludeFromIndexing(file)) {
-                    this.detectModules(file, projectModules);
-                }
-            }
-        } else {
-            List<InputFile> files = getFiles(projectDirectory, new ArrayList<>());
-            if (!files.isEmpty()) {
-                String projectIdentifier = getProjectIdentifier(projectDirectory);
-                LOGGER.info(
-                        "Created project module '{}' [{} files]", projectIdentifier, files.size());
-                ProjectModule project = new ProjectModule(projectIdentifier, files);
-                projectModules.add(project);
-            }
-        }
+    public List<ProjectModule> index(@Nullable Path packageFolder) {
+        Optional.ofNullable(packageFolder)
+                .ifPresent(path -> baseDirectory = baseDirectory.toPath().resolve(path).toFile());
+        final List<ProjectModule> projectModules = new ArrayList<>();
+        detectModules(baseDirectory, projectModules);
         return projectModules;
     }
 
-    @Nonnull
-    public List<InputFile> getFiles(
-            @Nonnull File directory, @Nonnull final List<InputFile> inputFiles) {
-        File[] filesInDir = directory.listFiles();
-        if (filesInDir == null) {
-            return Collections.emptyList();
+    private void detectModules(
+            @Nonnull File projectDirectory, @Nonnull List<ProjectModule> projectModules) {
+        if (projectDirectory.isFile()) {
+            return;
         }
-        LOGGER.debug("Extracting files from directory: {}", directory);
+        if (isModule(projectDirectory)) {
+            // Contains build files that indicates that this should be indexed as a module.
+            // This module cannot be composed of more modules
+            if (this.mainBuildType == null) {
+                this.mainBuildType = this.getMainBuildTypeFromModuleDirectory(projectDirectory);
+            }
+            addProjectModuleFromDirectory(projectModules, projectDirectory);
+        } else {
+            // this directory is not a module
+            final File[] filesInDir = projectDirectory.listFiles();
+            if (filesInDir == null) {
+                return;
+            }
+            for (File file : filesInDir) {
+                if (file.isDirectory() && !file.getName().equals(".git")) {
+                    this.detectModules(file, projectModules);
+                }
+            }
+            // if no models where found just add all files
+            if (projectModules.isEmpty()) {
+                addProjectModuleFromDirectory(projectModules, projectDirectory);
+            }
+        }
+    }
 
-        for (File file : filesInDir) {
-            if (excludeFromIndexing(file)) {
+    void addProjectModuleFromDirectory(
+            @Nonnull List<ProjectModule> projectModules, @Nonnull File projectDirectory) {
+        final String projectIdentifier = getProjectIdentifier(projectDirectory);
+        final File[] filesInDirectory = projectDirectory.listFiles();
+        final List<InputFile> files = new ArrayList<>();
+        collectInputFiles(filesInDirectory, projectDirectory, projectModules, files);
+
+        if (!files.isEmpty()) {
+            LOGGER.info(
+                    "Created project module '{}' [{} {} files]",
+                    projectIdentifier,
+                    files.size(),
+                    this.languageFileExtension);
+            projectModules.add(new ProjectModule(projectIdentifier, files));
+        }
+    }
+
+    void collectInputFiles(
+            @Nullable File[] fileList,
+            @Nonnull File projectDirectory,
+            @Nonnull List<ProjectModule> projectModules,
+            @Nonnull final List<InputFile> inputFiles) {
+        if (fileList == null) {
+            return;
+        }
+        for (File file : fileList) {
+            if (file.isDirectory() && !file.getName().equals(".git")) {
+                if (isModule(file)) {
+                    addProjectModuleFromDirectory(projectModules, file);
+                } else {
+                    collectInputFiles(
+                            file.listFiles(), projectDirectory, projectModules, inputFiles);
+                }
                 continue;
             }
-            if (file.isDirectory() && !".git".equals(file.getName())) {
-                getFiles(new File(directory + File.separator + file.getName()), inputFiles);
-            } else if (file.isFile() && file.getName().endsWith(this.languageFileExtension)) {
-                LOGGER.debug("Found file: {}", file);
+            // apply filter
+            if (!this.excludeFromIndexing(file)
+                    && file.getName().endsWith(this.languageFileExtension)) {
                 try {
-                    TestInputFileBuilder builder = createTestFileBuilder(directory, file);
+                    final TestInputFileBuilder builder =
+                            createTestFileBuilder(projectDirectory, file);
                     builder.setLanguage(this.languageIdentifier);
                     inputFiles.add(builder.build());
                 } catch (IOException iox) {
-                    // ignore file
+                    LOGGER.debug(iox.getLocalizedMessage());
                 }
             }
         }
-        return inputFiles;
     }
 
     @Nonnull
@@ -124,15 +153,14 @@ public abstract class IndexingService {
                 contents = Files.readString(file.toPath(), cs);
                 encoding = cs;
                 break;
-            } catch (Exception e) {
-                continue;
+            } catch (Exception error) {
+                LOGGER.error("Error reading file {}: {}", file.getPath(), error.getMessage());
             }
         }
         if (contents == null || encoding == null) {
-            throw new IOException(String.format("Invalid encoding of file {}", file));
+            throw new IOException("Invalid encoding of file " + file);
         }
-
-        return new TestInputFileBuilder("", file.getPath())
+        return new TestInputFileBuilder("", projectDirectory, file)
                 .setProjectBaseDir(projectDirectory.toPath())
                 .setContents(contents)
                 .setCharset(encoding)
@@ -140,11 +168,18 @@ public abstract class IndexingService {
     }
 
     @Nonnull
+    public Optional<IBuildType> getMainBuildType() {
+        return Optional.ofNullable(mainBuildType);
+    }
+
+    @Nonnull
     protected String getProjectIdentifier(@Nonnull File directory) {
         return baseDirectory.toPath().relativize(directory.toPath()).toString();
     }
 
-    abstract boolean isModule(@Nonnull File[] files);
+    abstract boolean isModule(@Nonnull File directory);
+
+    @Nullable abstract IBuildType getMainBuildTypeFromModuleDirectory(@Nonnull File directory);
 
     abstract boolean excludeFromIndexing(@Nonnull File file);
 }

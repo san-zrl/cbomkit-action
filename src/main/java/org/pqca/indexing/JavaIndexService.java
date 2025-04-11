@@ -21,7 +21,8 @@ package org.pqca.indexing;
 
 import jakarta.annotation.Nonnull;
 import java.io.File;
-import java.util.Arrays;
+import java.util.List;
+import javax.annotation.Nullable;
 
 public final class JavaIndexService extends IndexingService {
 
@@ -30,12 +31,42 @@ public final class JavaIndexService extends IndexingService {
     }
 
     @Override
-    boolean isModule(@Nonnull File[] files) {
-        return Arrays.stream(files).anyMatch(f -> f.getName().equals("pom.xml"));
+    boolean isModule(@Nonnull File directory) {
+        if (!directory.isDirectory()) {
+            return false;
+        }
+        final File srcFolder = new File(directory, "src");
+        for (String buildFileName : List.of("pom.xml", "build.gradle", "build.gradle.kts")) {
+            final File file = new File(directory, buildFileName);
+            if (file.exists() && file.isFile() && srcFolder.exists()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Nullable @Override
+    IBuildType getMainBuildTypeFromModuleDirectory(@Nonnull File directory) {
+        if (!directory.isDirectory()) {
+            return null;
+        }
+        // maven
+        final File pomFile = new File(directory, "pom.xml");
+        if (pomFile.exists() && pomFile.isFile()) {
+            return JavaBuildType.MAVEN;
+        }
+        // gradle
+        for (String gradleFileName : List.of("build.gradle", "build.gradle.kts")) {
+            final File gradleFile = new File(directory, gradleFileName);
+            if (gradleFile.exists() && gradleFile.isFile()) {
+                return JavaBuildType.GRADLE;
+            }
+        }
+        return null;
     }
 
     @Override
     boolean excludeFromIndexing(@Nonnull File file) {
-        return file.getPath().contains("src/test/") || file.getName().contains("package-info");
+        return file.getPath().contains("src/test/java") || file.getName().contains("package-info");
     }
 }

@@ -28,56 +28,112 @@ import org.pqca.scanning.ScannerService;
 import org.sonar.api.batch.fs.internal.DefaultFileSystem;
 import org.sonar.api.batch.sensor.internal.SensorContextTester;
 import org.sonar.api.config.internal.MapSettings;
+import org.sonar.api.measures.FileLinesContext;
+import org.sonar.api.measures.FileLinesContextFactory;
+import org.sonar.java.DefaultJavaResourceLocator;
+import org.sonar.java.JavaFrontend;
 import org.sonar.java.SonarComponents;
 import org.sonar.java.classpath.ClasspathForMain;
 import org.sonar.java.classpath.ClasspathForTest;
 import org.sonar.java.model.JavaVersionImpl;
-import org.sonar.java.model.VisitorsBridge;
-import org.sonar.plugins.java.api.JavaCheck;
+import org.sonar.plugins.java.api.JavaResourceLocator;
 import org.sonar.plugins.java.api.JavaVersion;
 
 public final class JavaScannerService extends ScannerService {
     private static final JavaVersion JAVA_VERSION =
             new JavaVersionImpl(JavaVersionImpl.MAX_SUPPORTED);
 
-    @Nonnull private final List<File> getJavaDependencyJARS;
+    @Nonnull private final String getJavaDependencyJARSPath;
 
     public JavaScannerService(
-            @Nonnull List<File> getJavaDependencyJARS, @Nonnull File projectDirectory) {
+            @Nonnull String getJavaDependencyJARSPath, @Nonnull File projectDirectory) {
         super(projectDirectory);
-        this.getJavaDependencyJARS = getJavaDependencyJARS;
+        this.getJavaDependencyJARSPath = getJavaDependencyJARSPath;
     }
 
     @Override
     @Nonnull
     public synchronized Bom scan(@Nonnull List<ProjectModule> index) {
-        final List<JavaCheck> visitors = List.of(new JavaDetectionCollectionRule(this));
-        final SensorContextTester sensorContext = SensorContextTester.create(projectDirectory);
+        final File targetJarClasses = new File(this.projectDirectory, "target/classes");
+        if (!targetJarClasses.exists()) {
+            LOGGER.warn(
+                    "No target folder found in java project. This reduces the accuracy of the findings.");
+        }
+
+        final SensorContextTester sensorContext = SensorContextTester.create(this.projectDirectory);
         sensorContext.setSettings(
                 new MapSettings()
-                        .setProperty(SonarComponents.FAIL_ON_EXCEPTION_KEY, false)
-                        .setProperty(SonarComponents.SONAR_AUTOSCAN, false));
+                        .setProperty(SonarComponents.SONAR_BATCH_MODE_KEY, true)
+                        .setProperty("sonar.java.libraries", this.getJavaDependencyJARSPath)
+                        .setProperty(
+                                "sonar.java.binaries",
+                                new File(this.projectDirectory, "target/classes").toString())
+                        .setProperty(SonarComponents.SONAR_AUTOSCAN, false)
+                        .setProperty(SonarComponents.SONAR_BATCH_SIZE_KEY, 8 * 1024 * 1024));
         final DefaultFileSystem fileSystem = sensorContext.fileSystem();
         final ClasspathForMain classpathForMain =
                 new ClasspathForMain(sensorContext.config(), fileSystem);
         final ClasspathForTest classpathForTest =
                 new ClasspathForTest(sensorContext.config(), fileSystem);
         final SonarComponents sonarComponents =
-                new SonarComponents(
-                        null, fileSystem, classpathForMain, classpathForTest, null, null);
+                getSonarComponents(fileSystem, classpathForMain, classpathForTest);
         sonarComponents.setSensorContext(sensorContext);
-
         LOGGER.info("Start scanning {} java projects", index.size());
-        index.forEach(pm -> LOGGER.info("  " + pm.identifier()));
 
+        final JavaResourceLocator javaResourceLocator =
+                new DefaultJavaResourceLocator(classpathForMain, classpathForTest);
+        final JavaFrontend javaFrontend =
+                new JavaFrontend(
+                        JAVA_VERSION,
+                        sonarComponents,
+                        null,
+                        javaResourceLocator,
+                        null,
+                        new JavaDetectionCollectionRule(this));
+
+        int counter = 1;
         for (ProjectModule project : index) {
-            final JavaAstScannerExtension jscanner = new JavaAstScannerExtension(sonarComponents);
-            VisitorsBridge visitorBridge =
-                    new VisitorsBridge(
-                            visitors, this.getJavaDependencyJARS, sonarComponents, JAVA_VERSION);
-            jscanner.setVisitorBridge(visitorBridge);
-            jscanner.scan(project.inputFileList());
+            final String projectStr =
+                    project.identifier() + " (" + counter + "/" + index.size() + ")";
+            LOGGER.info("Scanning project " + projectStr);
+
+            javaFrontend.scan(project.inputFileList(), List.of(), List.of());
+            counter++;
         }
+
         return this.getBOM();
+    }
+
+    @Nonnull
+    private static SonarComponents getSonarComponents(
+            DefaultFileSystem fileSystem,
+            ClasspathForMain classpathForMain,
+            ClasspathForTest classpathForTest) {
+        final FileLinesContextFactory fileLinesContextFactory =
+                inputFile ->
+                        new FileLinesContext() {
+                            @Override
+                            public void setIntValue(@Nonnull String s, int i, int i1) {
+                                // nothing
+                            }
+
+                            @Override
+                            public void setStringValue(
+                                    @Nonnull String s, int i, @Nonnull String s1) {
+                                // nothing
+                            }
+
+                            @Override
+                            public void save() {
+                                // nothing
+                            }
+                        };
+        return new SonarComponents(
+                fileLinesContextFactory,
+                fileSystem,
+                classpathForMain,
+                classpathForTest,
+                null,
+                null);
     }
 }

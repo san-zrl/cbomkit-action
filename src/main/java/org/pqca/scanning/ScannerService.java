@@ -22,7 +22,6 @@ package org.pqca.scanning;
 import com.ibm.mapper.model.INode;
 import com.ibm.output.IOutputFileFactory;
 import com.ibm.output.cyclondx.CBOMOutputFile;
-import com.ibm.output.cyclondx.CBOMOutputFileFactory;
 import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.util.Collections;
@@ -51,13 +50,13 @@ public abstract class ScannerService implements IScannerService {
         synchronized (this) {
             this.cbomOutputFile.add(nodes);
         }
-        // emit
-        final CBOMOutputFileFactory fileFactory = new CBOMOutputFileFactory();
-        final CBOMOutputFile componentAsCBOM = fileFactory.createOutputFormat(nodes);
-        componentAsCBOM
-                .getBom()
-                .getComponents()
-                .forEach(component -> sanitizeOccurrence(this.projectDirectory, component));
+        // No need to emit sanitized occurences
+        // final CBOMOutputFileFactory fileFactory = new CBOMOutputFileFactory();
+        // final CBOMOutputFile componentAsCBOM = fileFactory.createOutputFormat(nodes);
+        // componentAsCBOM
+        //         .getBom()
+        //         .getComponents()
+        //         .forEach(component -> sanitizeOccurrence(this.projectDirectory, component))ß;
     }
 
     @Nonnull

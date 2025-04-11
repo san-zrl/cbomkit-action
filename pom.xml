@@ -14,9 +14,8 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <sonar.crypto.plugin.version>1.4.0</sonar.crypto.plugin.version>
-        <sonar.version>25.2.0.102705</sonar.version>
-        <sonar.plugin.api.version>11.1.0.2693</sonar.plugin.api.version>
+        <sonar.crypto.plugin.version>1.4.5</sonar.crypto.plugin.version>
+        <sonar.plugin.api.impl.version>25.3.0.104237</sonar.plugin.api.impl.version>
 
         <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>
         <google-java-format.version>1.25.2</google-java-format.version>
@@ -40,32 +39,21 @@
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.36</version>
         </dependency>
-
         <dependency>
             <groupId>com.ibm</groupId>
             <artifactId>sonar-cryptography-plugin</artifactId>
             <version>${sonar.crypto.plugin.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.sonarsource.api.plugin</groupId>
-            <artifactId>sonar-plugin-api</artifactId>
-            <version>${sonar.plugin.api.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.sonarsource.sonarqube</groupId>
             <artifactId>sonar-plugin-api-impl</artifactId>
-            <version>${sonar.version}</version>
+            <version>${sonar.plugin.api.impl.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-model</artifactId>
-            <version>3.9.9</version>
-        </dependency>
-        <dependency>
-            <groupId>org.tomlj</groupId>
-            <artifactId>tomlj</artifactId>
-            <version>1.1.1</version>
+        <dependency> <!-- Fixes cbomkit issue #138 -->
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>4.29.0</version> <!-- Use the latest stable version -->
         </dependency>
     </dependencies>
 
@@ -115,6 +103,17 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <!--artifactSet>
+                                <excludes>
+                                    <exclude>org.sonarsource.analyzer-commons:*</exclude>
+                                    <exclude>com.fasterxml.woodstox:woodstox-core</exclude>
+                                    <exclude>com.google.code.gson:*</exclude>
+                                    <exclude>com.fasterxml.jackson.core:*</exclude>
+                                    <exclude>com.google.guava:guava</exclude>
+                                    <exclude>commons-codec:commons-codec</exclude>
+                                    <exclude>com.google.code.findbugs:jsr305</exclude>
+                                </excludes>
+                            </artifactSet-->
                         </configuration>
                     </execution>
                 </executions>

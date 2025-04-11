@@ -21,7 +21,8 @@ package org.pqca.indexing;
 
 import jakarta.annotation.Nonnull;
 import java.io.File;
-import java.util.Arrays;
+import java.util.List;
+import javax.annotation.Nullable;
 
 public final class PythonIndexService extends IndexingService {
 
@@ -30,13 +31,34 @@ public final class PythonIndexService extends IndexingService {
     }
 
     @Override
-    boolean isModule(@Nonnull File[] files) {
-        return Arrays.stream(files)
-                .anyMatch(
-                        f ->
-                                f.getName().equals("pyproject.toml")
-                                        || f.getName().equals("setup.cfg")
-                                        || f.getName().equals("setup.py"));
+    boolean isModule(@Nonnull File directory) {
+        for (String builFileName : List.of("pyproject.toml", "setup.cfg", "setup.py")) {
+            File f = new File(directory, builFileName);
+            if (f.exists() && f.isFile()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Nullable @Override
+    IBuildType getMainBuildTypeFromModuleDirectory(@Nonnull File directory) {
+        if (!directory.isDirectory()) {
+            return null;
+        }
+        // toml
+        final File tomlFile = new File(directory, "pyproject.toml");
+        if (tomlFile.exists() && tomlFile.isFile()) {
+            return PythonBuildType.TOML;
+        }
+        // setup
+        for (String setupFileName : List.of("setup.cfg", "setup.py")) {
+            final File setupFile = new File(directory, setupFileName);
+            if (setupFile.exists() && setupFile.isFile()) {
+                return PythonBuildType.SETUP;
+            }
+        }
+        return null;
     }
 
     @Override

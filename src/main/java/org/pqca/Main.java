@@ -25,6 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
@@ -40,13 +41,23 @@ public class Main {
     public static void main(@Nonnull String[] args) {
         final String workspace = System.getenv("GITHUB_WORKSPACE");
         final File projectDirectory = new File(workspace);
-        final BomGenerator bomGenerator = new BomGenerator(projectDirectory);
+
+        // Create output dir
+        final File outputDir =
+                Optional.ofNullable(System.getenv("CBOMKIT_OUT_DIR"))
+                        .map(File::new)
+                        .orElse(new File("cbom"));
+        LOG.info("Creating cbom output dir {}", outputDir);
+        outputDir.mkdirs();
+
+        final BomGenerator bomGenerator = new BomGenerator(projectDirectory, outputDir);
 
         try {
-            Bom javaBom = bomGenerator.generateJavaBoms();
-            Bom pythonBom = bomGenerator.generatePythonBoms();
+            List<Bom> boms = new ArrayList<>();
+            boms.addAll(bomGenerator.generateJavaBoms());
+            boms.addAll(bomGenerator.generatePythonBoms());
 
-            Bom consolidatedBom = createCombinedBom(List.of(javaBom, pythonBom));
+            Bom consolidatedBom = createCombinedBom(boms);
             bomGenerator.writeBom(consolidatedBom);
         } catch (CouldNotLoadJavaJars e) {
             LOG.error(e.getMessage(), e);
@@ -55,7 +66,7 @@ public class Main {
         // set output var
         final String githubOutput = System.getenv("GITHUB_OUTPUT");
         try (final FileWriter outPutVarFileWriter = new FileWriter(githubOutput, true)) {
-            outPutVarFileWriter.write("pattern=cbom*.json\n");
+            outPutVarFileWriter.write("pattern=" + outputDir + "/cbom*.json\n");
         } catch (IOException e) {
             LOG.error(e.getMessage(), e);
         }

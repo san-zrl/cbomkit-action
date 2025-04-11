@@ -40,9 +40,15 @@ public final class PythonScannerService extends ScannerService {
     public @Nonnull Bom scan(@Nonnull List<ProjectModule> index) {
         final PythonCheck visitor = new PythonDetectionCollectionRule(this);
 
+        LOGGER.info("Start scanning {} python projects", index.size());
+
+        int counter = 1;
         for (ProjectModule project : index) {
+            final String projectStr =
+                    project.identifier() + " (" + counter + "/" + index.size() + ")";
+            LOGGER.info("Scanning project " + projectStr);
+
             for (InputFile inputFile : project.inputFileList()) {
-                LOGGER.info("Scanning file: {}", inputFile.filename());
                 final PythonScannableFile pythonScannableFile = new PythonScannableFile(inputFile);
                 final FileInput parsedFile = pythonScannableFile.parse();
                 final PythonVisitorContext context =
@@ -53,7 +59,9 @@ public final class PythonScannerService extends ScannerService {
                                 project.identifier());
                 visitor.scanFile(context);
             }
+            counter++;
         }
+
         return this.getBOM();
     }
 }
