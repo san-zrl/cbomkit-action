@@ -47,8 +47,12 @@ public class Main {
                 Optional.ofNullable(System.getenv("CBOMKIT_OUT_DIR"))
                         .map(File::new)
                         .orElse(new File("cbom"));
-        LOG.info("Creating cbom output dir {}", outputDir);
-        outputDir.mkdirs();
+        boolean mkdirs_ok = outputDir.mkdirs();
+        if (mkdirs_ok) {
+            LOG.info("Created cbom output dir '{}'", outputDir);
+        } else {
+            LOG.fatal("Failed to created cbom output '{}', outputDir);
+        }
 
         final BomGenerator bomGenerator = new BomGenerator(projectDirectory, outputDir);
 
